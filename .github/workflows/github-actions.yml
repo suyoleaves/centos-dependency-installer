@@ -10,28 +10,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Docker
-        run: sudo apt-get update && sudo apt-get install -y docker.io
+      - name: Install Docker
+        run: |
+          # 卸载可能存在的冲突包
+          sudo apt-get remove -y containerd
+          sudo apt-get autoremove -y
 
-      - name: Run in CentOS 7 Docker Container
+          # 安装 Docker（官方脚本）
+          curl -fsSL https://get.docker.com | sudo sh
+
+      - name: Verify Docker Installation
+        run: |
+          docker --version
+          docker run hello-world
+
+      - name: Run in CentOS 7 Container
         env:
           DEPS_FILE: dependencies.txt
         run: |
-          # 拉取 CentOS 7 镜像
           docker pull centos:7
-
-          # 运行容器并挂载当前目录
-          docker run --rm -v $(pwd):/workdir -w /workdir centos:7 <<EOF
-          # 安装必要工具
-          yum install -y curl sudo createrepo yum-utils
-
-          # 配置阿里云 CentOS 7 源
-          curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
-          yum makecache
-
-          # 执行生成脚本
-          bash generate_yum_repo.sh -f $DEPS_FILE
-
-          # 执行检查脚本（需确保脚本兼容 CentOS 7）
-          bash check_revshell_offline.sh
-          EOF
+          docker run --rm -v $(pwd):/workdir centos:7 /bin/bash -c "
+            yum install -y curl sudo createrepo yum-utils &&
+            curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo &&
+            yum makecache &&
+            bash /workdir/generate_yum_repo.sh -f $DEPS_FILE &&
+            bash /workdir/check_revshell_offline.sh
+          "
