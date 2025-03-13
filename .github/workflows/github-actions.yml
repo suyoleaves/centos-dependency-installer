@@ -6,14 +6,17 @@ jobs:
   test-sh-scripts:
     runs-on: ubuntu-latest
     container:
-      image: centos:7  # 使用CentOS 7环境确保兼容性
+      image: ubuntu:20.04  # 使用 Ubuntu 20.04（glibc 2.31）
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Yum repository
+      - name: Setup CentOS 7 Environment (兼容性适配)
         run: |
+          # 安装基础工具
+          apt-get update && apt-get install -y curl sudo yum
+          # 配置 CentOS 7 的 yum 源
           curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
           yum makecache
           yum install -y sudo
