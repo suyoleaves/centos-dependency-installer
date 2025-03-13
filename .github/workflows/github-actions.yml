@@ -12,11 +12,8 @@ jobs:
 
       - name: Install Docker
         run: |
-          # 卸载可能存在的冲突包
           sudo apt-get remove -y containerd
           sudo apt-get autoremove -y
-
-          # 安装 Docker（官方脚本）
           curl -fsSL https://get.docker.com | sudo sh
 
       - name: Verify Docker Installation
@@ -29,10 +26,12 @@ jobs:
           DEPS_FILE: dependencies.txt
         run: |
           docker pull centos:7
-          docker run --rm -v $(pwd):/workdir centos:7 /bin/bash -c "
-            yum install -y curl sudo createrepo yum-utils &&
+          docker run --rm -v $(pwd):/workdir --dns 8.8.8.8 centos:7 /bin/bash -c "
+            echo 'nameserver 8.8.8.8' > /etc/resolv.conf &&
             curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo &&
+            yum clean all &&
             yum makecache &&
+            yum install -y curl sudo createrepo yum-utils &&
             bash /workdir/generate_yum_repo.sh -f $DEPS_FILE &&
             bash /workdir/check_revshell_offline.sh
           "
