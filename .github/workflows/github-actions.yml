@@ -1,0 +1,29 @@
+name: SH Scripts Test
+
+on: [push]
+
+jobs:
+  test-sh-scripts:
+    runs-on: ubuntu-latest
+    container:
+      image: centos:7  # 使用CentOS 7环境确保兼容性
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Yum repository
+        run: |
+          curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
+          yum makecache
+          yum install -y sudo
+
+      - name: Run generate_yum_repo.sh (generate part)
+        run: |
+          echo 'y' | bash generate_yum_repo.sh -f dependencies.txt
+        env:
+          DEPS_FILE: dependencies.txt  # 确保依赖文件存在
+
+      - name: Run install_dependency.sh (check part)
+        run: |
+          echo 'y' | bash check_revshell_offline.sh
