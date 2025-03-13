@@ -29,7 +29,7 @@ jobs:
             yum install -y curl sudo createrepo yum-utils &&
             
             # 设置脚本权限
-            chmod +x /workdir/generate_yum_repo.sh /workdir/check_revshell_offline.sh &&
+            chmod +x /workdir/generate_yum_repo.sh /workdir/install_dependency.sh &&
             
             # 生成离线包
             bash /workdir/generate_yum_repo.sh -f $DEPS_FILE &&
@@ -38,5 +38,5 @@ jobs:
             YUM_REPO_TAR=\$(ls /workdir/agent_yum_repo_*.tar.gz | head -n 1) &&
             
             # 执行检查脚本
-            bash /workdir/check_revshell_offline.sh -f \$YUM_REPO_TAR
+            bash /workdir/install_dependency.sh -f \$YUM_REPO_TAR
           "
