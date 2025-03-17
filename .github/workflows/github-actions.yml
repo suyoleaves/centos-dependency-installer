@@ -21,6 +21,7 @@ jobs:
           DEPS_FILE: dependencies.txt
         run: |
           docker pull centos:7
+          echo "宿主机当前目录: $(pwd)"
           docker run --rm -v $(pwd):/workdir --dns 8.8.8.8 centos:7 /bin/bash -c "
             echo 'nameserver 8.8.8.8' > /etc/resolv.conf &&
             curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo &&
@@ -30,6 +31,10 @@ jobs:
 
             # 设置脚本权限
             chmod +x /workdir/generate_yum_repo.sh /workdir/install_dependency.sh &&
+
+            # 调试输出
+            echo '容器内文件列表: $(ls -l /workdir)' &&
+            echo 'DEPS_FILE 值: $DEPS_FILE' &&
 
             # 生成离线包
             bash /workdir/generate_yum_repo.sh -f $DEPS_FILE &&
