@@ -11,10 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: "centos:7"  # 使用 centos:7 镜像
-
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+      ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
+      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up DNS
         run: |
