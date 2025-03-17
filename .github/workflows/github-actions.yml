@@ -16,53 +16,55 @@ jobs:
           sudo apt-get autoremove -y
           curl -fsSL https://get.docker.com | sudo sh
 
-      - name: Run in CentOS 7 Container
-        env:
-          DEPS_FILE: dependencies.txt
-        run: |
-          # 调试宿主机工作目录
-          echo "宿主机当前目录: $(pwd)"
-          echo "宿主机文件列表:"
-          ls -l $(pwd)
+name: Run Test
 
-          # 检查必要脚本是否存在
-          if [ ! -f "$(pwd)/generate_yum_repo.sh" ] || [ ! -f "$(pwd)/install_dependency.sh" ]; then
-            echo "错误：必要的脚本文件不存在！"
+on:
+  watch:
+    types: started
+
+jobs:
+  build:
+    name: Run on CentOS 7
+    runs-on: ubuntu-latest
+    container:
+      image: "centos:7"  # 使用 centos:7 镜像
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up DNS
+        run: |
+          echo 'nameserver 8.8.8.8' > /etc/resolv.conf
+
+      - name: Update and Install Dependencies
+        run: |
+          yum clean all
+          yum makecache
+          yum install -y curl sudo createrepo yum-utils
+
+      - name: Set Script Permissions
+        run: |
+          chmod +x generate_yum_repo.sh install_dependency.sh
+
+      - name: Debug Directory Contents
+        run: |
+          echo "容器内文件列表:"
+          ls -l
+
+      - name: Generate Yum Repo
+        run: |
+          ./generate_yum_repo.sh -f dependencies.txt
+
+      - name: Get YUM_REPO_TAR Path
+        run: |
+          YUM_REPO_TAR=$(ls agent_yum_repo_*.tar.gz | head -n 1)
+          echo "离线包路径: $YUM_REPO_TAR"
+          if [ -z "$YUM_REPO_TAR" ] || [ ! -f "$YUM_REPO_TAR" ]; then
+            echo '错误：未找到有效的离线包，请检查 generate_yum_repo.sh 的执行结果。'
             exit 1
           fi
 
-          # 运行容器
-          docker pull centos:7
-          docker run --rm -v $(pwd):/workdir:rw --dns 8.8.8.8 centos:7 /bin/bash -c "
-            # 确保挂载目录存在
-            mkdir -p /workdir &&
-            echo 'nameserver 8.8.8.8' > /etc/resolv.conf &&
-            curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo &&
-            yum clean all &&
-            yum makecache &&
-            yum install -y curl sudo createrepo yum-utils &&
-
-            # 设置脚本权限
-            chmod +x /workdir/generate_yum_repo.sh /workdir/install_dependency.sh &&
-
-            # 调试输出
-            echo '容器内文件列表: $(ls -l /workdir)' &&
-            echo 'DEPS_FILE 值: $DEPS_FILE' &&
-
-            # 生成离线包
-            bash /workdir/generate_yum_repo.sh -f $DEPS_FILE &&
-
-            # 获取离线包路径
-            YUM_REPO_TAR=\$(ls /workdir/agent_yum_repo_*.tar.gz | head -n 1) &&
-
-            # 调试输出
-            echo '当前目录下的文件列表: $(ls -l /workdir)' &&
-            echo '离线包路径: $YUM_REPO_TAR' &&
-            if [ -z \"\$YUM_REPO_TAR\" ] || [ ! -f \"\$YUM_REPO_TAR\" ]; then
-                echo '错误：未找到有效的离线包，请检查 generate_yum_repo.sh 的执行结果。'
-                exit 1
-            fi &&
-
-            # 执行安装脚本
-            bash /workdir/install_dependency.sh -f \$YUM_REPO_TAR
-          "
+      - name: Install Dependencies
+        run: |
+          ./install_dependency.sh -f $YUM_REPO_TAR
