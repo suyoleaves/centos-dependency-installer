@@ -9,10 +9,11 @@ while [ "$1" != "" ]; do
     shift
 done
 
-if [ -z "$DEPS_FILE" ] || [ ! -f "$DEPS_FILE" ]; then
-    echo "错误：请指定有效依赖文件（-f 参数）"
-    exit 1
+if [ -z "$YUM_REPO_TAR" ] || [ ! -f "$YUM_REPO_TAR" ]; then
+   echo "错误：请指定有效离线包（-f 参数），当前值为：$YUM_REPO_TAR"
+   exit 1
 fi
+
 
 # 读取依赖项（过滤注释和空行）
 dependencies=()

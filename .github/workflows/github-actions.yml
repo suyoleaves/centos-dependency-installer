@@ -27,19 +27,24 @@ jobs:
             yum clean all &&
             yum makecache &&
             yum install -y curl sudo createrepo yum-utils &&
-            
+
             # 设置脚本权限
             chmod +x /workdir/generate_yum_repo.sh /workdir/install_dependency.sh &&
-            
+
             # 生成离线包
             bash /workdir/generate_yum_repo.sh -f $DEPS_FILE &&
-            
+
             # 获取离线包路径
             YUM_REPO_TAR=\$(ls /workdir/agent_yum_repo_*.tar.gz | head -n 1) &&
-            
+
             # 调试输出
+            echo '当前目录下的文件列表: $(ls -l /workdir)' &&
             echo '离线包路径: $YUM_REPO_TAR' &&
-            
+            if [ -z \"\$YUM_REPO_TAR\" ] || [ ! -f \"\$YUM_REPO_TAR\" ]; then
+                echo '错误：未找到有效的离线包，请检查 generate_yum_repo.sh 的执行结果。'
+                exit 1
+            fi &&
+
             # 执行安装脚本
             bash /workdir/install_dependency.sh -f \$YUM_REPO_TAR
           "
