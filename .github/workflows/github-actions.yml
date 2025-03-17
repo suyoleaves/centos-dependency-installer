@@ -20,9 +20,22 @@ jobs:
         env:
           DEPS_FILE: dependencies.txt
         run: |
-          docker pull centos:7
+          # 调试宿主机工作目录
           echo "宿主机当前目录: $(pwd)"
-          docker run --rm -v $(pwd):/workdir --dns 8.8.8.8 centos:7 /bin/bash -c "
+          echo "宿主机文件列表:"
+          ls -l $(pwd)
+
+          # 检查必要脚本是否存在
+          if [ ! -f "$(pwd)/generate_yum_repo.sh" ] || [ ! -f "$(pwd)/install_dependency.sh" ]; then
+            echo "错误：必要的脚本文件不存在！"
+            exit 1
+          fi
+
+          # 运行容器
+          docker pull centos:7
+          docker run --rm -v $(pwd):/workdir:rw --dns 8.8.8.8 centos:7 /bin/bash -c "
+            # 确保挂载目录存在
+            mkdir -p /workdir &&
             echo 'nameserver 8.8.8.8' > /etc/resolv.conf &&
             curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo &&
             yum clean all &&
