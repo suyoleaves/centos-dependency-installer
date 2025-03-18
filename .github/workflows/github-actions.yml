@@ -35,8 +35,6 @@ jobs:
 
           docker pull centos:7
           docker run --rm \
-            # 移除用户映射（临时解决权限问题）
-            # -u $(id -u):$(id -g) \  
             -v $(pwd):/home/workdir:rw \
             --dns 8.8.8.8 \
             centos:7 /bin/bash -c "
@@ -60,7 +58,7 @@ jobs:
               YUM_REPO_TAR=\$(ls /home/workdir/agent_yum_repo_*.tar.gz | head -n 1) &&
               echo '离线包路径: $YUM_REPO_TAR' &&
               bash install_dependency.sh -f \$YUM_REPO_TAR &&
-              echo '运行测试结束' &&
+              echo '运行测试结束'
             "
 
       - name: 上传离线包到 Artifact
