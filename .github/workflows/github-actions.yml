@@ -23,7 +23,7 @@ jobs:
       - name: Run in CentOS 7 Container
         env:
           DEPS_FILE: dependencies.txt
-        run: |
+        run: |          
           echo "宿主机当前目录: $(pwd)"
           echo "宿主机文件列表:"
           ls -l $(pwd)
@@ -33,32 +33,27 @@ jobs:
               exit 1
           fi
 
-                    docker pull centos:7
+          docker pull centos:7
           docker run --rm \
             -v $(pwd):/home/workdir:rw \
             --dns 8.8.8.8 \
             centos:7 /bin/bash -c '
-              # 以 root 执行特权操作
+              # 直接以 root 执行所有步骤
               echo "nameserver 8.8.8.8" > /etc/resolv.conf &&
               curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo &&
               yum clean all && yum makecache &&
               yum install -y curl sudo createrepo yum-utils &&
 
-              # 创建与 GitHub Actions 用户匹配的用户
-              useradd -u $(id -u) -g $(id -g) -d /home/workdir -s /bin/bash runner &&
-              mkdir -p /home/workdir &&
-              chown -R $(id -u):$(id -g) /home/workdir &&
-              
-              # 切换到非特权用户执行后续步骤
-              su -c "
-                chmod +x /home/workdir/generate_yum_repo.sh /home/workdir/install_dependency.sh &&
-                cd /home/workdir &&
-                bash generate_yum_repo.sh -f /home/workdir/dependencies.txt &&
-                YUM_REPO_TAR=\$(ls /home/workdir/agent_yum_repo_*.tar.gz | head -n 1) &&
-                echo \"离线包路径: \$YUM_REPO_TAR\" &&
-                bash install_dependency.sh -f \"\$YUM_REPO_TAR\" &&
-                echo \"运行测试结束\"
-              " -s /bin/bash runner
+              # 设置脚本权限
+              chmod +x /home/workdir/generate_yum_repo.sh /home/workdir/install_dependency.sh &&
+              cd /home/workdir &&
+              bash generate_yum_repo.sh -f /home/workdir/dependencies.txt &&
+              YUM_REPO_TAR=$(ls /home/workdir/agent_yum_repo_*.tar.gz | head -n 1) &&
+              echo "离线包路径: $YUM_REPO_TAR" &&
+              bash install_dependency.sh -f "$YUM_REPO_TAR" &&
+              echo "运行测试结束" &&
+              # 将生成的文件权限改为宿主机用户
+              chown -R $(id -u):$(id -g) /home/workdir
             '
 
       - name: 上传离线包到 Artifact
