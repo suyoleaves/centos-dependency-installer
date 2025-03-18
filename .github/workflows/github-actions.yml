@@ -51,9 +51,10 @@ jobs:
               # 调试输出
               echo '容器内文件列表: $(ls -l /home/workdir)' &&
               echo 'DEPS_FILE 值: $DEPS_FILE' &&
-
+              
+              cd /home/workdir &&
               # 生成离线包
-              bash /home/workdir/generate_yum_repo.sh -f /home/workdir/dependencies.txt &&
+              bash generate_yum_repo.sh -f /home/workdir/dependencies.txt &&
 
               # 获取离线包路径
               YUM_REPO_TAR=\$(ls /home/workdir/agent_yum_repo_*.tar.gz | head -n 1) &&
@@ -67,5 +68,5 @@ jobs:
               fi &&
 
               # 执行安装脚本
-              bash /home/workdir/install_dependency.sh -f \$YUM_REPO_TAR
+              bash install_dependency.sh -f \$YUM_REPO_TAR
             "
