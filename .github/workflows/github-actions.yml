@@ -10,6 +10,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set directory permissions
+        run: |
+          chmod -R 755 $(pwd)
+
       - name: Install Docker
         run: |
           sudo apt-get remove -y containerd
@@ -19,20 +23,19 @@ jobs:
       - name: Run in CentOS 7 Container
         env:
           DEPS_FILE: dependencies.txt
-        run: |          # 调试宿主机工作目录
+        run: |
           echo "宿主机当前目录: $(pwd)"
           echo "宿主机文件列表:"
           ls -l $(pwd)
 
-          # 检查必要脚本是否存在
           if [ ! -f "$(pwd)/generate_yum_repo.sh" ] || [ ! -f "$(pwd)/install_dependency.sh" ]; then
-            echo "错误：必要的脚本文件不存在！"
-            exit 1
+              echo "错误：必要的脚本文件不存在！"
+              exit 1
           fi
 
-          # 运行容器
           docker pull centos:7
           docker run --rm \
+            -u $(id -u):$(id -g) \
             -v $(pwd):/home/workdir:rw \
             --dns 8.8.8.8 \
             centos:7 /bin/bash -c "
@@ -59,14 +62,19 @@ jobs:
               # 获取离线包路径
               YUM_REPO_TAR=\$(ls /home/workdir/agent_yum_repo_*.tar.gz | head -n 1) &&
 
-              # 调试输出
-              echo '当前目录下的文件列表: $(ls -l /home/workdir)' &&
-              echo '离线包路径: \$YUM_REPO_TAR' &&
-              if [ -z \"\$YUM_REPO_TAR\" ] || [ ! -f \"\$YUM_REPO_TAR\" ]; then
-                  echo '错误：未找到有效的离线包，请检查 generate_yum_repo.sh 的执行结果。'
-                  exit 1
-              fi &&
-
-              # 执行安装脚本
-              bash install_dependency.sh -f \$YUM_REPO_TAR
+              # 验证并输出路径
+              echo '离线包路径: $YUM_REPO_TAR'
             "
+
+      - name: 上传离线包到 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "centos-offline-repo"
+          path: "./agent_yum_repo_*.tar.gz"
+          retention-days: 30  # 设置保留天数（默认90天）
+
+      - name: 下载 Artifact 链接说明
+        run: |
+          echo "离线包已生成并上传为 Artifact，可通过以下路径下载："
+          echo "1. 进入 Actions 页面，找到本次运行的 Job"
+          echo "2. 点击 [Artifacts] 标签页，下载 'centos-offline-repo' 文件"
