@@ -19,8 +19,7 @@ jobs:
       - name: Run in CentOS 7 Container
         env:
           DEPS_FILE: dependencies.txt
-        run: |
-          # 调试宿主机工作目录
+        run: |          # 调试宿主机工作目录
           echo "宿主机当前目录: $(pwd)"
           echo "宿主机文件列表:"
           ls -l $(pwd)
@@ -33,36 +32,40 @@ jobs:
 
           # 运行容器
           docker pull centos:7
-          echo "$(pwd)"
-          docker run --rm -v $(pwd):/home/workdir:rw --dns 8.8.8.8 centos:7 /bin/bash -c mkdir -p /home/workdir"
-            # 确保挂载目录存在
-            echo 'nameserver 8.8.8.8' > /etc/resolv.conf &&
-            curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo &&
-            yum clean all &&
-            yum makecache &&
-            yum install -y curl sudo createrepo yum-utils &&
+          docker run --rm \
+            -v $(pwd):/home/workdir:rw \
+            --dns 8.8.8.8 \
+            centos:7 /bin/bash -c "
+              # 确保挂载目录存在
+              mkdir -p /home/workdir &&
+              # 设置 DNS 和 yum 配置
+              echo 'nameserver 8.8.8.8' > /etc/resolv.conf &&
+              curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo &&
+              yum clean all &&
+              yum makecache &&
+              yum install -y curl sudo createrepo yum-utils &&
 
-            # 设置脚本权限
-            chmod +x /workdir/generate_yum_repo.sh /workdir/install_dependency.sh &&
+              # 设置脚本权限
+              chmod +x /home/workdir/generate_yum_repo.sh /home/workdir/install_dependency.sh &&
 
-            # 调试输出
-            echo '容器内文件列表: $(ls -l /home/workdir)' &&
-            echo 'DEPS_FILE 值: $DEPS_FILE' &&
+              # 调试输出
+              echo '容器内文件列表: $(ls -l /home/workdir)' &&
+              echo 'DEPS_FILE 值: $DEPS_FILE' &&
 
-            # 生成离线包
-            bash /workdir/generate_yum_repo.sh -f $DEPS_FILE &&
+              # 生成离线包
+              bash /home/workdir/generate_yum_repo.sh -f /home/workdir/dependencies.txt &&
 
-            # 获取离线包路径
-            YUM_REPO_TAR=\$(ls /workdir/agent_yum_repo_*.tar.gz | head -n 1) &&
+              # 获取离线包路径
+              YUM_REPO_TAR=\$(ls /home/workdir/agent_yum_repo_*.tar.gz | head -n 1) &&
 
-            # 调试输出
-            echo '当前目录下的文件列表: $(ls -l /workdir)' &&
-            echo '离线包路径: $YUM_REPO_TAR' &&
-            if [ -z \"\$YUM_REPO_TAR\" ] || [ ! -f \"\$YUM_REPO_TAR\" ]; then
-                echo '错误：未找到有效的离线包，请检查 generate_yum_repo.sh 的执行结果。'
-                exit 1
-            fi &&
+              # 调试输出
+              echo '当前目录下的文件列表: $(ls -l /home/workdir)' &&
+              echo '离线包路径: \$YUM_REPO_TAR' &&
+              if [ -z \"\$YUM_REPO_TAR\" ] || [ ! -f \"\$YUM_REPO_TAR\" ]; then
+                  echo '错误：未找到有效的离线包，请检查 generate_yum_repo.sh 的执行结果。'
+                  exit 1
+              fi &&
 
-            # 执行安装脚本
-            bash /workdir/install_dependency.sh -f \$YUM_REPO_TAR
-          "
+              # 执行安装脚本
+              bash /home/workdir/install_dependency.sh -f \$YUM_REPO_TAR
+            "
