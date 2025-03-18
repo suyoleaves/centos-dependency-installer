@@ -32,20 +32,28 @@ sudo mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/backup/
 
 # 解压传入的离线包到当前目录
 tar -xzf "$YUM_REPO_TAR" -C "$script_dir"
+# 调试输出解压后的目录内容
+echo "解压后的目录内容："
+ls -l "$script_dir"
 
+# 验证 repodata 存在
+if [ ! -d "$script_dir/repodata" ]; then
+    echo "错误：未找到 repodata 目录，请检查离线包内容。"
+    exit 1
+fi
 # 设置本地仓库路径
 current_dir=$(pwd)
 sudo tee /etc/yum.repos.d/local.repo <<EOF
 [local]
 name=Local Repository
-baseurl=file://${current_dir}/offline_yum_repo
+baseurl=file://${current_dir}
 enabled=1
 gpgcheck=0
 EOF
 
 sudo yum clean all
 sudo yum makecache
-cd offline_yum_repo
+#cd $(pwd)/offline_yum_repo
 
 # 复制 repodata 目录
 sudo cp -r repodata /etc/yum.repos.d/
