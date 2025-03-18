@@ -12,7 +12,7 @@ jobs:
 
       - name: Set directory permissions
         run: |
-          chmod -R 755 $(pwd)
+          chmod -R 777 $(pwd)
 
       - name: Install Docker
         run: |
@@ -35,7 +35,7 @@ jobs:
 
           docker pull centos:7
           docker run --rm \
-            -u $(id -u):$(id -g) \
+#            -u $(id -u):$(id -g) \
             -v $(pwd):/home/workdir:rw \
             --dns 8.8.8.8 \
             centos:7 /bin/bash -c "
