@@ -2,4 +2,3 @@ bash
 nc
 curl
 telnet
-openssh
